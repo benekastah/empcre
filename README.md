@@ -1,0 +1,4 @@
+empcre
+======
+
+pcre via emscripten
