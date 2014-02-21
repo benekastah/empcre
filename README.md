@@ -12,5 +12,8 @@ has it?). The presence of this flag could greatly speed up parsing large files
 in javascript. I have not yet determined if that will be possible through PCRE
 and will look into that soon.
 
+You don't have to build this yourself; for convenience I have included the
+build output in the `dist` directory.
+
 If you're curious how to use this, feel free to look at the `example`
 directory.
