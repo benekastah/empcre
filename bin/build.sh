@@ -1,13 +1,6 @@
 #!/bin/bash
 
-em++ -O2 --bind \
-    -Lpcre/.libs \
-    -lpcre -lpcrecpp \
-    -Ipcre \
-    -o dist/empcre.js \
-    -s EXPORTED_FUNCTIONS="[
-        '_pcre_compile',
-        '_pcre_exec',
-        '_pcre_fullinfo',
-    ]" \
-    src/c/empcre.cpp
+emcc -Lpcre/.libs -lpcre -Ipcre src/c/empcre.c -o dist/empcre.js -s \
+    EXPORTED_FUNCTIONS="[
+    `bin/find_exports.sh | sed -e 's/^/\"/' -e 's/$/\",/'`
+    ]"
