@@ -5,31 +5,32 @@
 
 #include "empcre.h"
 
-RegExp *MakeRegExp() {
-    RegExp *re = malloc(sizeof(RegExp));
+RE *RE_make() {
+    RE *re = malloc(sizeof(RE));
     re->source = malloc(sizeof(char *));
     return re;
 }
 
-void DestroyRegExp(RegExp *re) {
+void RE_destroy(RE *re) {
     free((void*)re->source);
     pcre_free(re->re);
     pcre_free(re->extra);
     free(re);
 }
 
-RegExpMatch *MakeRegExpMatch() {
-    RegExpMatch *m = malloc(sizeof(RegExpMatch));
+REMatch *REMatch_make() {
+    REMatch *m = malloc(sizeof(REMatch));
     m->input = malloc(sizeof(char *));
+    m->length = 0;
     return m;
 }
 
-void DestroyRegExpMatch(RegExpMatch *m) {
+void REMatch_destroy(REMatch *m) {
     free((void*)m->input);
     free(m);
 }
 
-RegExp *empcre_make_re(const char *pattern) {
+RE *RE_new(const char *pattern) {
     const char *pcreErrorStr;
     int pcreErrorOffset;
     pcre *reCompiled;
@@ -47,7 +48,7 @@ RegExp *empcre_make_re(const char *pattern) {
         exit(1);
     }
 
-    RegExp *result = MakeRegExp();
+    RE *result = RE_make();
     strcpy((char *)result->source, pattern);
     result->re = reCompiled;
     result->extra = pcreExtra;
@@ -55,49 +56,54 @@ RegExp *empcre_make_re(const char *pattern) {
     return result;
 }
 
-RegExpMatch *empcre_match(RegExp *re, const char *input) {
+REMatch *RE_match(RE *re, const char *input, int startoffset) {
     int subStrVec[MAX_MATCHES];
     int result;
-
-    printf("Testing '%s' against the pattern '%s'...\n", input, re->source);
 
     result = pcre_exec(re->re,
             re->extra,
             input,
-            strlen(input),   // length of string
-            0,               // Start looking at this point
+            strlen(input),
+            startoffset,
             0,               // OPTIONS
             subStrVec,
             MAX_MATCHES); // Length of subStrVec
 
+    REMatch *match = REMatch_make();
+
     if (result < 0) {
         switch (result) {
             case PCRE_ERROR_NOMATCH:
-                printf("String did not match the pattern\n");
+                return match;
                 break;
             case PCRE_ERROR_NULL:
                 printf("Something was null\n");
+                exit(result);
                 break;
             case PCRE_ERROR_BADOPTION:
                 printf("A bad option was passed\n");
+                exit(result);
                 break;
             case PCRE_ERROR_BADMAGIC:
                 printf("Magic number bad (compiled re corrupt?)\n");
+                exit(result);
                 break;
             case PCRE_ERROR_UNKNOWN_NODE:
                 printf("Something kooky in the compiled re\n");
+                exit(result);
                 break;
             case PCRE_ERROR_NOMEMORY:
                 printf("Ran out of memory\n");
+                exit(result);
                 break;
             default:
                 printf("Unknown error\n");
+                exit(result);
                 break;
         }
-        exit(1);
     }
 
-    RegExpMatch *match = MakeRegExpMatch();
+    match->length = result;
     strcpy((char *)match->input, input);
 
     for(int i=0; i < result; i++) {
@@ -105,5 +111,13 @@ RegExpMatch *empcre_match(RegExp *re, const char *input) {
     }
 
     return match;
+}
+
+int REMatch_get_length(REMatch *match) {
+    return match->length;
+}
+
+const char *REMatch_get_match_at(REMatch *match, int i) {
+    return match->matches[i];
 }
 
