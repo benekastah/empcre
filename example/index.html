@@ -9,9 +9,19 @@
     <body>
 
         <script type="text/javascript">
-            var re = new RE('h(.*)o');
-            console.log(re.match('  hello  '));
-            console.log(re.match('ho'));
+            var match = function (re, input, offset) {
+                    console.log(
+                        'Matching ' + re + ' against "' + input + '"',
+                        re.match(input, offset));
+                },
+                re;
+
+            re = new RE('h(.*)o');
+            match(re, '  hello  ');
+            match(re, 'ho');
+
+            re = new RE('h(.*)o', 'i');
+            match(re, 'HIJKLMNO');
         </script>
 
     </body>
