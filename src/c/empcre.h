@@ -1,6 +1,5 @@
 
 #include <pcre.h>
-#include <stdbool.h>
 
 #define MAX_MATCHES 100
 
