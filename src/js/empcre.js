@@ -1,22 +1,49 @@
-(function () {
+(function (Module) {
 
-    var RE_destroy = Module.cwrap('RE_destroy', 'null', ['number']);
+    var method = function (cls, ptrProp, methodName, ret, args) {
+        var fn = Module.cwrap(cls.name + methodName, ret, args);
+        cls.prototype[methodName] = function () {
+            var ptr = this[ptrProp];
+            var args = [ptr && ptr.call ? ptr.call(this) : ptr];
+            args.push.apply(args, arguments);
+            return fn.apply(null, args);
+        };
+    };
+
     var REMatch_destroy = Module.cwrap('REMatch_destroy', 'null', ['number']);
-    var RE_new = Module.cwrap('RE_new', 'number', ['string']);
-    var RE_match = Module.cwrap('RE_match', 'number', ['number', 'string', 'number']);
     var REMatch_get_length = Module.cwrap('REMatch_get_length', 'number', ['number']);
     var REMatch_get_match_at = Module.cwrap('REMatch_get_match_at', 'string', ['number']);
 
     window.RE = RE;
 
-    function RE(pattern) {
+    function RE(pattern, flags) {
         this.pattern = pattern;
+        this.flags = flags || '';
+        this.buildRe();
     }
 
-    RE.prototype.re = function () {
+    RE.method = function (methodName, ret, args) {
+        method(this, '_re', methodName, ret, args);
+    };
+
+    RE._new = Module.cwrap('RE_new', 'number', ['string', 'string']);
+    RE.method('_destroy', 'null', ['number']);
+    RE.method('_new', 'number', ['string', 'string']);
+    RE.method('_match', 'number', ['number', 'string', 'number']);
+    RE.method('_hasFlag', 'number', ['number', 'string']);
+
+    RE.prototype.toString = function () {
+        return '/' + this.pattern + '/' + this.flags;
+    };
+
+    RE.prototype.buildRe = function () {
         if (!this._re) {
-            console.warn('Allocating memory for /' + this.pattern + '/');
-            this._re = RE_new(this.pattern);
+            console.warn('Allocating memory for ' + this);
+            this._re = RE._new(this.pattern, this.flags);
+            this.ignoreCase = this._hasFlag('ignoreCase');
+            this.multiline = this._hasFlag('multiline');
+            this.dotall = this._hasFlag('dotall');
+            this.jsCompat = this._hasFlag('jsCompat');
         }
 
         // Try to manage memory automatically
@@ -30,13 +57,14 @@
     };
 
     RE.prototype.destroy = function () {
-        console.warn('Cleaning up memory for /' + this.pattern + '/');
-        RE_destroy(this._re);
+        console.warn('Cleaning up memory for ' + this);
+        this._destroy();
         this._re = null;
     };
 
     RE.prototype.match = function (input, startOffset) {
-        var matchPtr = RE_match(this.re(), input, startOffset || 0);
+        this.buildRe();
+        var matchPtr = this._match(input, startOffset || 0);
 
         var matches = {
             length: 0,
@@ -68,4 +96,4 @@
         return new REExecutor;
     };
 
-})();
+})(Module);
